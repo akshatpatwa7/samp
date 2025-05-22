@@ -1,0 +1,33 @@
+trigger:
+- main
+
+pool:
+  name: ITSIA-SI-POOL
+
+stages:
+  - stage: Dev_deployment
+    jobs:
+      - job: Dev_deployment
+        steps:
+          - task: Bash@3
+            displayName: Dev_Build
+            env:
+              JAVA_HOME : /Data/webadmin/integrations/jdk-17.0.12/
+            inputs:
+              targetType: 'inline'        
+              script: |
+                      # Write your commands here
+                      
+                      pwd
+                      /Data/webadmin/esb_cd/apache-maven/bin/mvn clean package -DskipTests -s /Data/webadmin/esb_cd/settings.xml 
+                      cd target/azure-functions/*
+                      zip -r $(System.DefaultWorkingDirectory)/wbg-docusign-connector.zip  *
+
+          - task: AzureFunctionApp@2
+            displayName: Dev_Deployment
+            inputs:
+              connectedServiceNameARM: 'itsia-si-apim-wbgintapim-identity'
+              appType: 'functionApp'
+              appName: 'wbg-sap-generic-service-dev'
+              package: '$(System.DefaultWorkingDirectory)/wbg-docusign-connector.zip'
+              deploymentMethod: 'auto'
