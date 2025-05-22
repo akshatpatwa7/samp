@@ -11,13 +11,12 @@ import com.function.service.DocusignConnectService;
 import com.function.service.DocusignOAuthTokenService;
 import com.function.service.PropertiesService;
 import com.function.service.DocusignPayloadService;
+import com.function.service.DocusignReportsReprocessService;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.function.service.DocusignServiceEnvelopes;
 import com.microsoft.azure.functions.*;
 import com.microsoft.azure.functions.annotation.*;
-import com.microsoft.azure.functions.annotation.AuthorizationLevel;
-import com.microsoft.azure.functions.annotation.HttpTrigger;
 import com.function.service.ServiceBusQueuePublisherService;
 
 public class DocusignControllerFunction {
@@ -70,7 +69,7 @@ public class DocusignControllerFunction {
         }
     }
 
-
+//===================================================================================================================================
     @FunctionName("generateDocusignDatabasePayload")
     public HttpResponseMessage generateDocusignDatabasePayload(
             @HttpTrigger(
@@ -123,7 +122,7 @@ public class DocusignControllerFunction {
                     .build();
         }
     }
-
+//===================================================================================================================================
     @FunctionName("PostDocuSignEnvelope")
     public HttpResponseMessage postEnvelope(
         @HttpTrigger(
@@ -178,7 +177,7 @@ public class DocusignControllerFunction {
                     .build();
         }
     }
-
+//===================================================================================================================================
     @FunctionName("PostDocuSignConnect")
     public HttpResponseMessage postConnect(
         @HttpTrigger(
@@ -279,7 +278,7 @@ public class DocusignControllerFunction {
             }}
         }
 
-        //=====
+//===================================================================================================================================
 
     @FunctionName("PostServiceBusMessage")
     public HttpResponseMessage postToServiceBus(
@@ -328,4 +327,35 @@ public class DocusignControllerFunction {
                     .build();
         }
     }
+//===================================================================================================================================
+        @FunctionName("ReprocessDocusignDLQMessages")
+        public void run(
+                @TimerTrigger(name = "reprocessDLQTimer", schedule = "0 */30 * * * *") // Runs every 30 min
+                String timerInfo,
+                final ExecutionContext context) {
+
+            // Step A: Log function trigger time
+            context.getLogger().info(() -> "[Controller] Step A: Azure Function triggered at: " + java.time.LocalDateTime.now());
+
+            try {
+                // Step B: Initialize DLQ reprocessing service
+                context.getLogger().info(() -> "[Controller] Step B: Initializing DocusignReportsReprocessService...");
+                DocusignReportsReprocessService service = new DocusignReportsReprocessService();
+
+                // Step C: Call the DLQ reprocess logic and pass context for logging
+                context.getLogger().info(() -> "[Controller] Step C: Calling service.reprocessDLQ(context)...");
+                service.reprocessDLQ(context);
+
+                // Step D: Log success
+                context.getLogger().info(() -> "[Controller] Step D: Reprocessing completed without exceptions.");
+
+            } catch (Exception ex) {
+                // Step E: Handle and log error
+                context.getLogger().severe(() -> "[Controller] Step E: Exception occurred: " + ex.getMessage());
+                // Optional: ex.printStackTrace();
+            }
+        }
+
+
+//===================================================================================================================================
 }
